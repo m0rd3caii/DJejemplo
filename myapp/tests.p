@@ -5,10 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from django.contrib.auth.models import User
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium import webdriver
-from selenium.webdriver.support.ui import Select
-import time
+
  
 class MySeleniumTests(StaticLiveServerTestCase):
     # carregar una BD de test
@@ -55,38 +52,37 @@ class MySeleniumTests(StaticLiveServerTestCase):
         self.selenium.get('%s%s' % (self.live_server_url, '/admin/myapp/question/add/'))
         question_input = self.selenium.find_element(By.NAME, "question_text")
         question_input.send_keys("Pregunta 1")
+        self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
 
-        time0_input = self.selenium.find_element(By.NAME, "pub_date_0")
-        time0_input.send_keys("2025-02-09")
-
-        pubdate1_input = self.selenium.find_element(By.NAME, "pub_date_1")
-        pubdate1_input.send_keys("16:34:20")
-
-        opcion0_input = self.selenium.find_element(By.NAME, "choice_set-0-choice_text")
-        opcion0_input.send_keys("Opcion 1")
-
-        opcion1_input = self.selenium.find_element(By.NAME, "choice_set-1-choice_text")
-        opcion1_input.send_keys("Opcion 2")
+        # Crear las opciones (Choices) para la primera pregunta
+        self.selenium.get('%s%s' % (self.live_server_url, '/admin/myapp/choice/add/'))
+        choice_input = self.selenium.find_element(By.NAME, "choice_text")
+        choice_input.send_keys("Opción 1.1")
+        self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
+        
+        # Agregar otra opción
+        self.selenium.get('%s%s' % (self.live_server_url, '/admin/myapp/choice/add/'))
+        choice_input = self.selenium.find_element(By.NAME, "choice_text")
+        choice_input.send_keys("Opción 1.2")
         self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
 
         # Crear una segunda pregunta
         self.selenium.get('%s%s' % (self.live_server_url, '/admin/myapp/question/add/'))
         question_input = self.selenium.find_element(By.NAME, "question_text")
         question_input.send_keys("Pregunta 2")
-
-        time0_input = self.selenium.find_element(By.NAME, "pub_date_0")
-        time0_input.send_keys("2025-02-09")
-
-        pubdate1_input = self.selenium.find_element(By.NAME, "pub_date_1")
-        pubdate1_input.send_keys("16:34:20")
-
-        opcion0_input = self.selenium.find_element(By.NAME, "choice_set-0-choice_text")
-        opcion0_input.send_keys("Opcion 1")
-
-        opcion1_input = self.selenium.find_element(By.NAME, "choice_set-1-choice_text")
-        opcion1_input.send_keys("Opcion 2")
         self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
 
+        # Crear las opciones (Choices) para la segunda pregunta
+        self.selenium.get('%s%s' % (self.live_server_url, '/admin/myapp/choice/add/'))
+        choice_input = self.selenium.find_element(By.NAME, "choice_text")
+        choice_input.send_keys("Opción 2.1")
+        self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
+
+        # Agregar otra opción
+        self.selenium.get('%s%s' % (self.live_server_url, '/admin/myapp/choice/add/'))
+        choice_input = self.selenium.find_element(By.NAME, "choice_text")
+        choice_input.send_keys("Opción 2.2")
+        self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
 
 
         # Crear un usuario staff
@@ -113,17 +109,19 @@ class MySeleniumTests(StaticLiveServerTestCase):
         )
         permissions_select.click()
 
-        filter = self.selenium.find_element(By.ID, "id_user_permissions_input")
-        filter.send_keys('Myapp | question | Can view question')
-        self.selenium.find_element(By.ID, 'id_user_permissions_add_all_link').click()
-        time.sleep(10)
+        choice_permission = WebDriverWait(self.selenium, 10).until(
+           EC.presence_of_element_located((By.XPATH, '//input[@title="Myapp | choice | Can view choice"]'))
+        )
+        choice_permission.click()
 
         self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
+        # Asignar permisos: view_question y view_choice
+       # self.selenium.find_element(By.NAME, "user_permissions").click()
+       # self.selenium.find_element(By.XPATH, '//input[@title="Myapp | choice | Can view choice"]').click()
+        #self.selenium.find_element(By.XPATH, '//input[@title="Myapp | choice | Can view choice"]').click()
+        #self.selenium.find_element(By.XPATH, '//input[@title="user_permissions"]').click()
 
-        #self.selenium.get('%s%s' % (self.live_server_url, '/admin/logout/'))
-        self.selenium.find_element(By.CSS_SELECTOR, "#logout-form button[type='submit']").click()
-
-        time.sleep(10)
+        #self.selenium.find_element(By.XPATH, '//input[@value="Save"]').click()
 
         # Loguearse con el usuario staff
         self.selenium.get('%s%s' % (self.live_server_url, '/admin/login/'))
@@ -135,7 +133,9 @@ class MySeleniumTests(StaticLiveServerTestCase):
 
         # Comprobar que puede ver las preguntas
         self.selenium.get('%s%s' % (self.live_server_url, '/admin/myapp/question/'))
-        time.sleep(4)
+        page_title = self.selenium.find_element(By.TAG_NAME, "h1").text
+        self.assertTrue("question" in page_title.lower())  # Verifica si la palabra "question" está en el título
+
         # Intentar acceder a una pregunta para editarla y verificar que no puede
         self.selenium.get('%s%s' % (self.live_server_url, '/admin/myapp/question/1/change/'))
         # Comprobamos que aparece un mensaje de error de "Permission denied"
